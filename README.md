@@ -1,5 +1,5 @@
-# Quantum linear solvers
-Contains classical and quantum algorithms to solve systems of linear equations such as the HHL algorithm.
+# HHL linear solvers
+Contains an implementation to solve systems of linear equations using the HHL algorithm.
 
 ## Installation
 ```python
