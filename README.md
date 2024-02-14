@@ -3,9 +3,9 @@ Contains classical and quantum algorithms to solve systems of linear equations s
 
 ## Installation
 ```python
-git clone https://github.com/anedumla/quantum_linear_solvers.git
-cd quantum_linear_solvers
-pip install .
+git clone https://github.com/QuantumApplicationLab/hhl_prototype
+cd hhl_prototype
+pip install -e .
 ```
 
 ## Documentation

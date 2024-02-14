@@ -1,10 +1,8 @@
 from setuptools import find_packages, setup
 
-name = "quantum_linear_solvers"
+name = "hhl_prototype"
 version = "0.0.1"
-description = (
-    "Quantum linear solvers package"
-)
+description = "HHL linear solver package"
 
 with open("README.md") as f:
     long_description = f.read()
