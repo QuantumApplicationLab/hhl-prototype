@@ -1,5 +1,6 @@
 # HHL linear solvers
 Contains an implementation to solve systems of linear equations using the HHL algorithm.
+Original implementation by [@anemulda](https://github.com/anedumla) : https://github.com/anedumla/quantum_linear_solvers
 
 ## Installation
 ```python
