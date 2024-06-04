@@ -19,21 +19,21 @@ from qiskit.circuit import QuantumCircuit, QuantumRegister, AncillaRegister
 from qiskit.circuit.library import PhaseEstimation
 from qiskit.circuit.library.arithmetic.piecewise_chebyshev import PiecewiseChebyshev
 from qiskit.circuit.library.arithmetic.exact_reciprocal import ExactReciprocal
-from qiskit.opflow import (
-    Z,
-    I,
-    StateFn,
-    TensoredOp,
-    ExpectationBase,
-    CircuitSampler,
-    ListOp,
-    ExpectationFactory,
-    ComposedOp,
-)
+#from qiskit.opflow import (
+#    Z,
+#    I,
+#    StateFn,
+#    TensoredOp,
+#    ExpectationBase,
+#    CircuitSampler,
+#    ListOp,
+#    ExpectationFactory,
+#    ComposedOp,
+#)
 from qiskit.providers import Backend
-from qiskit.utils import QuantumInstance
+#from qiskit.utils import QuantumInstance
 
-from .linear_solver import LinearSolver, LinearSolverResult
+from hhl_prototype.linear_solver import LinearSolver, LinearSolverResult
 from .matrices.numpy_matrix import NumPyMatrix
 from .observables.linear_system_observable import LinearSystemObservable
 
@@ -99,8 +99,10 @@ class HHL(LinearSolver):
     def __init__(
         self,
         epsilon: float = 1e-2,
-        expectation: Optional[ExpectationBase] = None,
-        quantum_instance: Optional[Union[Backend, QuantumInstance]] = None,
+        #expectation: Optional[ExpectationBase] = None,
+        expectation: Optional[str] = None,
+        #quantum_instance: Optional[Union[Backend, QuantumInstance]] = None,
+        quantum_instance: Optional[str] = None,
     ) -> None:
         r"""
         Args:
@@ -166,16 +168,16 @@ class HHL(LinearSolver):
         """Set the new scaling of the solution vector."""
         self._scaling = scaling
 
-    @property
-    def expectation(self) -> ExpectationBase:
-        """The expectation value algorithm used to construct the expectation measurement from
-        the observable."""
-        return self._expectation
+    #@property
+    #def expectation(self) -> ExpectationBase:
+    #    """The expectation value algorithm used to construct the expectation measurement from
+    #    the observable."""
+    #    return self._expectation
 
-    @expectation.setter
-    def expectation(self, expectation: ExpectationBase) -> None:
-        """Set the expectation value algorithm."""
-        self._expectation = expectation
+    #@expectation.setter
+    #def expectation(self, expectation: ExpectationBase) -> None:
+    #    """Set the expectation value algorithm."""
+    #    self._expectation = expectation
 
     def _get_delta(self, n_l: int, lambda_min: float, lambda_max: float) -> float:
         """Calculates the scaling factor to represent exactly lambda_min on nl binary digits.

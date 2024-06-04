@@ -17,7 +17,8 @@ from typing import Union, Optional, List, Callable
 import numpy as np
 
 from qiskit import QuantumCircuit
-from qiskit.algorithms.algorithm_result import AlgorithmResult
+#from qiskit.algorithms.algorithm_result import AlgorithmResult
+from qiskit_algorithms import AlgorithmResult 
 
 from .observables.linear_system_observable import LinearSystemObservable
 
