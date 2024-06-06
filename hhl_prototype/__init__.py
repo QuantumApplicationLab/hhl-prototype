@@ -73,10 +73,7 @@ Observables
 """
 
 from .hhl import HHL
-from .numpy_linear_solver import NumPyLinearSolver
-from .linear_solver import LinearSolver, LinearSolverResult
 from .matrices import LinearSystemMatrix, NumPyMatrix, TridiagonalToeplitz
-from .observables import LinearSystemObservable, AbsoluteAverage, MatrixFunctional
 
 __all__ = [
     "HHL",
