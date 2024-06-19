@@ -139,7 +139,7 @@ class HHL():
 
         # Norm observable
         if self.sampler == None:
-            observable = SparsePauliOp("Z" * (nl+na +nb+1))
+            observable = SparsePauliOp("X" * (nl+na +nb+1))
             job = self.estimator.run(qc, observable)
         else: 
             qc.measure_all()
@@ -373,7 +373,9 @@ class HHL():
                
         solution = HHLResult
     
+        
         solution.state = self.construct_circuit(matrix, vector) 
+        solution.qbits = solution.state.size()
         solution.circuit_results = self._calculate_norm(solution.state)
     
 

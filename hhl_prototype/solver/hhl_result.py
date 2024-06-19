@@ -22,6 +22,7 @@ class HHLResult():
         self._observable = None
         self._euclidean_norm = None
         self._circuit_results = None
+        self._qbits = None
 
     @property
     def observable(self) -> Union[float, List[float]]:
@@ -64,6 +65,20 @@ class HHLResult():
             norm: The new euclidean norm of the solution.
         """
         self._euclidean_norm = norm
+        
+    @property
+    def qbits(self) -> int:
+        """return the euclidean norm if the algorithm knows how to calculate it"""
+        return self._qbits
+
+    @qbits.setter
+    def qbits(self, count: int) -> None:
+        """Set the euclidean norm of the solution.
+
+        Args:
+            norm: The new euclidean norm of the solution.
+        """
+        self._qbits = count
 
     @property
     def circuit_results(self) -> Union[List[float], List[Result]]:
