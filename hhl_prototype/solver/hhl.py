@@ -15,26 +15,20 @@
 from typing import Optional, Union, List, Callable, Tuple
 import numpy as np
 
-from qiskit.circuit import QuantumCircuit, QuantumRegister, AncillaRegister
+from qiskit.circuit import QuantumCircuit, QuantumRegister, AncillaRegister, ClassicalRegister
 from qiskit.circuit.library import PhaseEstimation
 from qiskit.circuit.library.arithmetic.piecewise_chebyshev import PiecewiseChebyshev
 from qiskit.circuit.library.arithmetic.exact_reciprocal import ExactReciprocal
-#from qiskit.opflow import (
-#    Z,
-#    I,
-#    StateFn,
-#    TensoredOp,
-#    ExpectationBase,
-#    CircuitSampler,
-#    ListOp,
-#    ExpectationFactory,
-#    ComposedOp,
-#)
-from qiskit.providers import Backend
-#from qiskit.utils import QuantumInstance
+
+from qiskit.providers import Backend    
 from qiskit.circuit.library import Isometry
-from .matrices.numpy_matrix import NumPyMatrix
-#from .observables.linear_system_observable import LinearSystemObservable
+from ..matrices.numpy_matrix import NumPyMatrix
+
+from qiskit.quantum_info import SparsePauliOp
+from qiskit.primitives import BaseEstimator, BaseSampler
+
+from .hhl_result import HHLResult
+
 
 
 class HHL():
@@ -97,6 +91,8 @@ class HHL():
 
     def __init__(
         self,
+        estimator: BaseEstimator,
+        sampler: Optional[Union[BaseSampler, None]] = None,
         epsilon: float = 1e-2,
     ) -> None:
         r"""
@@ -119,12 +115,37 @@ class HHL():
 
         self._scaling = None  # scaling of the solution
 
-        self._sampler = None
+        self.estimator = estimator
+        self.sampler = sampler
 
         # For now the default reciprocal implementation is exact
         self._exact_reciprocal = True
         # Set the default scaling to 1
         self.scaling = 1
+
+    def _calculate_norm(self, qc: QuantumCircuit) -> float:
+        """Calculates the value of the euclidean norm of the solution.
+
+        Args:
+            qc: The quantum circuit preparing the solution x to the system.
+
+        Returns:
+            The value of the euclidean norm of the solution.
+        """
+        # Calculate the number of qubits
+        nb = qc.qregs[0].size
+        nl = qc.qregs[1].size
+        na = qc.num_ancillas
+
+        # Norm observable
+        if self.sampler == None:
+            observable = SparsePauliOp("Z" * (nl+na +nb+1))
+            job = self.estimator.run(qc, observable)
+        else: 
+            qc.measure_all()
+            job = self.sampler.run(qc)
+
+        return job.result()
 
     def _get_delta(self, n_l: int, lambda_min: float, lambda_max: float) -> float:
         """Calculates the scaling factor to represent exactly lambda_min on nl binary digits.
@@ -147,6 +168,9 @@ class HHL():
         for i, char in enumerate(binstr):
             lamb_min_rep += int(char) / (2 ** (i + 1))
         return lamb_min_rep
+    
+
+
     
     def construct_circuit(
         self,
@@ -332,3 +356,26 @@ class HHL():
         else:
             qc.append(phase_estimation.inverse(), ql[:] + qb[:])
         return qc
+    
+    def solve(self,
+        matrix: Union[np.ndarray, QuantumCircuit, List[QuantumCircuit]],
+        vector: Union[np.ndarray, QuantumCircuit],
+    ) -> HHLResult:
+        """Solve the linear system
+
+        Args:
+            matrix (Union[List, np.ndarray, QuantumCircuit]): matrix of the linear system
+            vector (Union[np.ndarray, QuantumCircuit]): rhs of the linear system
+
+        Returns:
+            HHLResult: Dataclass with solution vector of the linear system
+        """
+               
+        solution = HHLResult
+    
+        solution.state = self.construct_circuit(matrix, vector) 
+        solution.circuit_results = self._calculate_norm(solution.state)
+    
+
+
+        return solution

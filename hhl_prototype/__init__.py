@@ -72,18 +72,4 @@ Observables
 
 """
 
-from .hhl import HHL
 from .matrices import LinearSystemMatrix, NumPyMatrix, TridiagonalToeplitz
-
-__all__ = [
-    "HHL",
-    "NumPyLinearSolver",
-    "LinearSolver",
-    "LinearSolverResult",
-    "LinearSystemMatrix",
-    "NumPyMatrix",
-    "TridiagonalToeplitz",
-    "LinearSystemObservable",
-    "AbsoluteAverage",
-    "MatrixFunctional",
-]
