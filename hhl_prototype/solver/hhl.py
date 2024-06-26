@@ -15,7 +15,7 @@
 from typing import Optional, Union, List, Callable, Tuple
 import numpy as np
 
-from qiskit.circuit import QuantumCircuit, QuantumRegister, AncillaRegister, ClassicalRegister
+from qiskit.circuit import QuantumCircuit, QuantumRegister, AncillaRegister
 from qiskit.circuit.library import PhaseEstimation
 from qiskit.circuit.library.arithmetic.piecewise_chebyshev import PiecewiseChebyshev
 from qiskit.circuit.library.arithmetic.exact_reciprocal import ExactReciprocal
@@ -24,7 +24,7 @@ from qiskit.providers import Backend
 from qiskit.circuit.library import Isometry
 from ..matrices.numpy_matrix import NumPyMatrix
 
-from qiskit.quantum_info import SparsePauliOp
+from qiskit.quantum_info import SparsePauliOp, Statevector
 from qiskit.primitives import BaseEstimator, BaseSampler
 
 from .hhl_result import HHLResult
@@ -139,7 +139,7 @@ class HHL():
 
         # Norm observable
         if self.sampler == None:
-            observable = SparsePauliOp("X" * (nl+na +nb+1))
+            observable = SparsePauliOp("Z" * (nl+na +nb+1))
             job = self.estimator.run(qc, observable)
         else: 
             qc.measure_all()
@@ -376,7 +376,7 @@ class HHL():
         
         solution.state = self.construct_circuit(matrix, vector) 
         solution.qbits = solution.state.size()
-        solution.circuit_results = self._calculate_norm(solution.state)
+        solution.vector = np.real(Statevector(solution.state).data)
     
 
 

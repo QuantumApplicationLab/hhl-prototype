@@ -72,4 +72,3 @@ Observables
 
 """
 
-from .matrices import LinearSystemMatrix, NumPyMatrix, TridiagonalToeplitz
