@@ -14,6 +14,7 @@
 
 from typing import Optional, Union, List, Callable, Tuple
 import numpy as np
+from typing import Optional, Union, List, Callable, Dict, Tuple
 
 from qiskit.circuit import QuantumCircuit, QuantumRegister, AncillaRegister
 from qiskit.circuit.library import PhaseEstimation
@@ -94,17 +95,25 @@ class HHL():
         estimator: BaseEstimator,
         sampler: Optional[Union[BaseSampler, None]] = None,
         epsilon: float = 1e-2,
+        options: Optional[Union[Dict, None]] = None,
     ) -> None:
         r"""
         Args:
             epsilon: Error tolerance of the approximation to the solution, i.e. if :math:`x` is the
                 exact solution and :math:`\tilde{x}` the one calculated by the algorithm, then
                 :math:`||x - \tilde{x}|| \le epsilon`.
-            expectation: The expectation converter applied to the expectation values before
-                evaluation. If None then PauliExpectation is used.
-            quantum_instance: Quantum Instance or Backend. If None, a Statevector calculation is
-                done.
         """
+
+        self.default_solve_options = {
+            "use_overlap_test": False,
+            "use_local_cost_function": False,
+            "matrix_decomposition": "symmetric",
+            "shots": None,
+            "reuse_matrix": False,
+            "verbose": False,
+        }
+        self.options = self._validate_solve_options(options)
+
         super().__init__()
 
         self._epsilon = epsilon
@@ -122,6 +131,51 @@ class HHL():
         self._exact_reciprocal = True
         # Set the default scaling to 1
         self.scaling = 1
+
+    def _validate_solve_options(self, options: Union[Dict, None]) -> Dict:
+        """validate the options used for the solve methods
+
+        Args:
+            options (Union[Dict, None]): options
+        """
+        valid_keys = self.default_solve_options.keys()
+
+        if options is None:
+            options = self.default_solve_options
+
+        else:
+            for k in options.keys():
+                if k not in valid_keys:
+                    raise ValueError(
+                        "Option {k} not recognized, valid keys are {valid_keys}"
+                    )
+            for k in valid_keys:
+                if k not in options.keys():
+                    options[k] = self.default_solve_options[k]
+
+        if options["use_overlap_test"] and options["use_local_cost_function"]:
+            raise ValueError(
+                "Local cost function cannot be used with Hadamard Overlap test"
+            )
+
+        if options["use_overlap_test"] and self.sampler is None:
+            raise ValueError(
+                "Please provide a sampler primitives when using Hadamard Overlap test"
+            )
+
+        valid_matrix_decomposition = [
+            "symmetric",
+            "pauli",
+            "contracted_pauli",
+            "optimized_pauli",
+        ]
+        if options["matrix_decomposition"] not in valid_matrix_decomposition:
+            raise ValueError(
+                f"matrix decomposition {k} invalid, valid keys: {valid_matrix_decomposition}"
+            )
+
+        return options
+
 
     def _calculate_norm(self, qc: QuantumCircuit) -> float:
         """Calculates the value of the euclidean norm of the solution.

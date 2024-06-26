@@ -88,3 +88,17 @@ class HHLResult():
     @circuit_results.setter
     def circuit_results(self, results: Union[List[float], List[Result]]):
         self._circuit_results = results
+
+    @property
+    def vector(self) -> np.array:
+        """return the euclidean norm if the algorithm knows how to calculate it"""
+        return self._qbits
+
+    @vector.setter
+    def vector(self, solution: np.array) -> None:
+        """Set the euclidean norm of the solution.
+
+        Args:
+            norm: The new euclidean norm of the solution.
+        """
+        self._vector = solution

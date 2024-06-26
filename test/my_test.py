@@ -20,7 +20,7 @@ classical_solution = np.linalg.solve(A, b / np.linalg.norm(b))
 ref_solution = classical_solution / np.linalg.norm(classical_solution)
 
 print(ref_solution)
-print(solution.circuit_results)
+print(solution.vector)
 
 """
 if sampler == None:
