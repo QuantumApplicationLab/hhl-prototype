@@ -39,6 +39,20 @@ class HHLResult():
         self._observable = observable
 
     @property
+    def circuit(self) -> Union[QuantumCircuit, np.ndarray]:
+        """return either the circuit that prepares the solution or the solution as a vector"""
+        return self._circuit
+
+    @circuit.setter
+    def circuit(self, circuit: Union[QuantumCircuit, np.ndarray]) -> None:
+        """Set the solution state as either the circuit that prepares it or as a vector.
+
+        Args:
+            state: The new solution state.
+        """
+        self._circuit = circuit
+
+    @property
     def state(self) -> Union[QuantumCircuit, np.ndarray]:
         """return either the circuit that prepares the solution or the solution as a vector"""
         return self._state
@@ -51,6 +65,7 @@ class HHLResult():
             state: The new solution state.
         """
         self._state = state
+
 
     @property
     def euclidean_norm(self) -> float:
@@ -81,6 +96,20 @@ class HHLResult():
         self._qbits = count
 
     @property
+    def x_reg(self) -> int:
+        """return the euclidean norm if the algorithm knows how to calculate it"""
+        return self._x_reg
+
+    @qbits.setter
+    def x_reg(self, count: int) -> None:
+        """Set the euclidean norm of the solution.
+
+        Args:
+            norm: The new euclidean norm of the solution.
+        """
+        self._x_reg = count
+
+    @property
     def circuit_results(self) -> Union[List[float], List[Result]]:
         """return the results from the circuits"""
         return self._circuit_results
@@ -88,6 +117,9 @@ class HHLResult():
     @circuit_results.setter
     def circuit_results(self, results: Union[List[float], List[Result]]):
         self._circuit_results = results
+
+
+
 
     @property
     def vector(self) -> np.array:

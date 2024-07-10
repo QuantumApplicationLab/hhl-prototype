@@ -17,7 +17,7 @@ import numpy as np
 from typing import Optional, Union, List, Callable, Dict, Tuple
 
 from qiskit.circuit import QuantumCircuit, QuantumRegister, AncillaRegister
-from qiskit.circuit.library import PhaseEstimation
+from qiskit.circuit.library import PhaseEstimation, Isometry
 from qiskit.circuit.library.arithmetic.piecewise_chebyshev import PiecewiseChebyshev
 from qiskit.circuit.library.arithmetic.exact_reciprocal import ExactReciprocal
 
@@ -25,7 +25,7 @@ from qiskit.providers import Backend
 from qiskit.circuit.library import Isometry
 from ..matrices.numpy_matrix import NumPyMatrix
 
-from qiskit.quantum_info import SparsePauliOp, Statevector
+from qiskit.quantum_info import SparsePauliOp, Statevector, partial_trace
 from qiskit.primitives import BaseEstimator, BaseSampler
 
 from .hhl_result import HHLResult
@@ -256,13 +256,18 @@ class HHL():
                 vector = np.array(vector)
             nb = int(np.log2(len(vector)))
             vector_circuit = QuantumCircuit(nb)
-            # pylint: disable=no-member
-            #iso = Isometry(vector / np.linalg.norm(vector), list(range(nb)), None)
-            """"
+            # i made a change here
+            
+            isometry = Isometry(vector / np.linalg.norm(vector), 0, 0)
+            vector_circuit.append(isometry, list(range(nb)))
+            
+            
+            '''
+            vector_circuit.prepare_state(vector / np.linalg.norm(vector))
             vector_circuit.isometry(
                 vector / np.linalg.norm(vector), list(range(nb)), None
             )
-            """
+            '''
         # If state preparation is probabilistic the number of qubit flags should increase
         nf = 1
 
@@ -428,9 +433,12 @@ class HHL():
         solution = HHLResult
     
         
-        solution.state = self.construct_circuit(matrix, vector) 
-        solution.qbits = solution.state.size()
-        solution.vector = np.real(Statevector(solution.state).data)
+        solution.circuit = self.construct_circuit(matrix, vector)
+        solution.qbits = solution.circuit.num_qubits
+        solution.x_reg = solution.circuit.qregs[0].size
+        solution.state = np.real(Statevector(solution.circuit).data)
+        #solution.vector = np.real(np.diagonal(partial_trace(Statevector(solution.circuit), range(solution.x_reg, solution.qbits))))
+        #[0:solution.x_reg*solution.x_reg]
     
 
 

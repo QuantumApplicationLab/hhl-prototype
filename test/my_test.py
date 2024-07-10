@@ -16,11 +16,19 @@ sampler = Sampler()
 hhl = HHL(estimator, sampler = sampler)
 
 solution = hhl.solve(A,b)
-classical_solution = np.linalg.solve(A, b / np.linalg.norm(b))
+cs = np.linalg.solve(A, b)
+classical_solution = np.linalg.solve(A,b  / np.linalg.norm(b))
 ref_solution = classical_solution / np.linalg.norm(classical_solution)
 
-print(ref_solution)
+
+circ = solution.circuit
+
+
+circ.draw('mpl')
+plt.show()
 print(solution.vector)
+print(ref_solution)
+
 
 """
 if sampler == None:
