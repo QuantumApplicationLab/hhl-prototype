@@ -222,7 +222,32 @@ class HHL():
         for i, char in enumerate(binstr):
             lamb_min_rep += int(char) / (2 ** (i + 1))
         return lamb_min_rep
-    
+    '''
+    def _calculate_norm(self, qc: QuantumCircuit) -> float:
+        """Calculates the value of the euclidean norm of the solution.
+
+        Args:
+            qc: The quantum circuit preparing the solution x to the system.
+
+        Returns:
+            The value of the euclidean norm of the solution.
+        """
+        # Calculate the number of qubits
+        nb = qc.qregs[0].size
+        nl = qc.qregs[1].size
+        na = qc.num_ancillas
+
+        # Create the Operators Zero and One
+        zero_op = (I + Z) / 2
+        one_op = (I - Z) / 2
+
+
+        # Norm observable
+        observable = one_op ^ TensoredOp((nl + na) * [zero_op]) ^ (I ^ nb)
+        norm_2 = (~StateFn(observable) @ StateFn(qc)).eval()
+
+        return np.real(np.sqrt(norm_2) / self.scaling)
+    '''
 
 
     
@@ -436,9 +461,9 @@ class HHL():
         solution.circuit = self.construct_circuit(matrix, vector)
         solution.qbits = solution.circuit.num_qubits
         solution.x_reg = solution.circuit.qregs[0].size
-        solution.state = np.real(Statevector(solution.circuit).data)
-        #solution.vector = np.real(np.diagonal(partial_trace(Statevector(solution.circuit), range(solution.x_reg, solution.qbits))))
-        #[0:solution.x_reg*solution.x_reg]
+        #solution.vector =  np.real(np.diagonal(partial_trace(Statevector(solution.circuit), range(solution.x_reg, solution.qbits)))), (solution.qbits / 2) : (solution.x_reg)^2]
+        solution.state = np.real(Statevector(solution.circuit).data[solution.qbits / 2 : solution.x_reg^2])
+        
     
 
 

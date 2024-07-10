@@ -23,6 +23,7 @@ class HHLResult():
         self._euclidean_norm = None
         self._circuit_results = None
         self._qbits = None
+        self._x_reg = None
 
     @property
     def observable(self) -> Union[float, List[float]]:
