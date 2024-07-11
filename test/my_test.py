@@ -4,37 +4,34 @@ from hhl_prototype.solver.hhl import HHL
 from qiskit.primitives import Estimator, Sampler
 from qiskit.result import marginal_counts
 from qiskit.quantum_info import Statevector
+from qiskit.quantum_info import SparsePauliOp
 
-A = np.random.rand(4,4)
-A = A+A.T
+# A = np.random.rand(4, 4)
+# A = A + A.T
+# b = np.random.rand(4)
 
-b = np.random.rand(4)
+A = np.array(
+    [
+        [1, -1 / 3, 0, 0],
+        [-1 / 3, 1, -1 / 3, 0],
+        [0, -1 / 3, 1, -1 / 3],
+        [0, 0, -1 / 3, 1],
+    ]
+)
+b = np.array([1, 0, 0, 0])
+
+A = np.array([[1, -1 / 3], [-1 / 3, 1]])
+b = np.array([1, 1 / 2])
+
+
 estimator = Estimator()
 sampler = Sampler()
 
 
-hhl = HHL(estimator, sampler = sampler)
+hhl = HHL(estimator, sampler=sampler)
 
-solution = hhl.solve(A,b)
+solution = hhl.solve(A, b)
 cs = np.linalg.solve(A, b)
-classical_solution = np.linalg.solve(A,b  / np.linalg.norm(b))
-ref_solution = classical_solution / np.linalg.norm(classical_solution)
 
-
-circ = solution.circuit
-
-
-circ.draw('mpl')
-plt.show()
-print(solution.vector)
-print(ref_solution)
-
-
-"""
-if sampler == None:
-    print(np.real(Statevector(solution.state).data))
-else: 
-    for i in range(solution.qbits):
-        print(np.real(np.sqrt(marginal_counts(solution.circuit_results.quasi_dists[0].binary_probabilities(), [i])['0'])))
-"""
-
+print(cs)
+print(solution.solution)
