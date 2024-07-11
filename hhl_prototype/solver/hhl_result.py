@@ -7,7 +7,7 @@ from qiskit.result import Result
 from qiskit.quantum_info.operators.base_operator import BaseOperator
 
 
-class HHLResult():
+class HHLResult:
     """A base class for linear systems results.
 
     The linear systems algorithms return an object of the type ``LinearSystemsResult``
@@ -23,6 +23,7 @@ class HHLResult():
         self._euclidean_norm = None
         self._circuit_results = None
         self._qbits = None
+        self._solution = None
 
     @property
     def observable(self) -> Union[float, List[float]]:
@@ -53,6 +54,20 @@ class HHLResult():
         self._circuit = circuit
 
     @property
+    def solution(self) -> np.ndarray:
+        """return either the circuit that prepares the solution or the solution as a vector"""
+        return self._state
+
+    @solution.setter
+    def solution(self, solution: np.ndarray) -> None:
+        """Set the solution state as either the circuit that prepares it or as a vector.
+
+        Args:
+            state: The new solution state.
+        """
+        self._solution = solution
+
+    @property
     def state(self) -> Union[QuantumCircuit, np.ndarray]:
         """return either the circuit that prepares the solution or the solution as a vector"""
         return self._state
@@ -65,7 +80,6 @@ class HHLResult():
             state: The new solution state.
         """
         self._state = state
-
 
     @property
     def euclidean_norm(self) -> float:
@@ -80,7 +94,7 @@ class HHLResult():
             norm: The new euclidean norm of the solution.
         """
         self._euclidean_norm = norm
-        
+
     @property
     def qbits(self) -> int:
         """return the euclidean norm if the algorithm knows how to calculate it"""
@@ -117,9 +131,6 @@ class HHLResult():
     @circuit_results.setter
     def circuit_results(self, results: Union[List[float], List[Result]]):
         self._circuit_results = results
-
-
-
 
     @property
     def vector(self) -> np.array:

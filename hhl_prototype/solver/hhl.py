@@ -21,7 +21,7 @@ from qiskit.circuit.library import PhaseEstimation, Isometry
 from qiskit.circuit.library.arithmetic.piecewise_chebyshev import PiecewiseChebyshev
 from qiskit.circuit.library.arithmetic.exact_reciprocal import ExactReciprocal
 
-from qiskit.providers import Backend    
+from qiskit.providers import Backend
 from qiskit.circuit.library import Isometry
 from ..matrices.numpy_matrix import NumPyMatrix
 
@@ -31,8 +31,7 @@ from qiskit.primitives import BaseEstimator, BaseSampler
 from .hhl_result import HHLResult
 
 
-
-class HHL():
+class HHL:
     """Systems of linear equations arise naturally in many real-life applications in a wide range
     of areas, such as in the solution of Partial Differential Equations, the calibration of
     financial models, fluid simulation or numerical field calculation. The problem can be defined
@@ -176,31 +175,6 @@ class HHL():
 
         return options
 
-
-    def _calculate_norm(self, qc: QuantumCircuit) -> float:
-        """Calculates the value of the euclidean norm of the solution.
-
-        Args:
-            qc: The quantum circuit preparing the solution x to the system.
-
-        Returns:
-            The value of the euclidean norm of the solution.
-        """
-        # Calculate the number of qubits
-        nb = qc.qregs[0].size
-        nl = qc.qregs[1].size
-        na = qc.num_ancillas
-
-        # Norm observable
-        if self.sampler == None:
-            observable = SparsePauliOp("Z" * (nl+na +nb+1))
-            job = self.estimator.run(qc, observable)
-        else: 
-            qc.measure_all()
-            job = self.sampler.run(qc)
-
-        return job.result()
-
     def _get_delta(self, n_l: int, lambda_min: float, lambda_max: float) -> float:
         """Calculates the scaling factor to represent exactly lambda_min on nl binary digits.
 
@@ -222,10 +196,7 @@ class HHL():
         for i, char in enumerate(binstr):
             lamb_min_rep += int(char) / (2 ** (i + 1))
         return lamb_min_rep
-    
 
-
-    
     def construct_circuit(
         self,
         matrix: Union[List, np.ndarray, QuantumCircuit],
@@ -257,17 +228,16 @@ class HHL():
             nb = int(np.log2(len(vector)))
             vector_circuit = QuantumCircuit(nb)
             # i made a change here
-            
+
             isometry = Isometry(vector / np.linalg.norm(vector), 0, 0)
             vector_circuit.append(isometry, list(range(nb)))
-            
-            
-            '''
+
+            """
             vector_circuit.prepare_state(vector / np.linalg.norm(vector))
             vector_circuit.isometry(
                 vector / np.linalg.norm(vector), list(range(nb)), None
             )
-            '''
+            """
         # If state preparation is probabilistic the number of qubit flags should increase
         nf = 1
 
@@ -415,8 +385,48 @@ class HHL():
         else:
             qc.append(phase_estimation.inverse(), ql[:] + qb[:])
         return qc
-    
-    def solve(self,
+
+    @staticmethod
+    def get_solution_vector(solution, A, b) -> np.ndarray:
+        """Extracts and normalizes simulated state vector
+        from LinearSolverResult.
+
+        Args:
+            solution (): HHL result instance
+            A (np.ndarray): LS matrix
+            b (np.ndarray): LS rhs
+
+        Returns:
+            np.ndarray: solution of the LS
+        """
+        nqubits = int(np.log2(len(solution.state)))
+        start_idx = 2 ** (nqubits - 1)
+        end_idx = start_idx + 2 ** int(np.log2(len(b)))
+        solution_vector = Statevector(solution.state).data[start_idx:end_idx].real
+        tmp_vec = A @ solution_vector
+        norm = np.linalg.norm(tmp_vec) / np.linalg.norm(b)
+        return solution_vector / norm
+
+    @staticmethod
+    def get_state_statevector(circuit: QuantumCircuit):
+        """Extract the statevector of a circuit using statevector simulators
+
+        Args:
+            circuit (QuantumCircuit): the circuit
+        """
+        return np.real(Statevector(circuit).data)
+
+    @staticmethod
+    def get_state_qst(circuit: QuantumCircuit):
+        """Extract the statevector using quantum state tomotgraphy
+
+        Args:
+            circuit (QuantumCircuit): the circuit
+        """
+        raise NotImplementedError("get_state_qst not implemented yet")
+
+    def solve(
+        self,
         matrix: Union[np.ndarray, QuantumCircuit, List[QuantumCircuit]],
         vector: Union[np.ndarray, QuantumCircuit],
     ) -> HHLResult:
@@ -429,17 +439,12 @@ class HHL():
         Returns:
             HHLResult: Dataclass with solution vector of the linear system
         """
-               
+
         solution = HHLResult
-    
-        
+
         solution.circuit = self.construct_circuit(matrix, vector)
         solution.qbits = solution.circuit.num_qubits
         solution.x_reg = solution.circuit.qregs[0].size
-        solution.state = np.real(Statevector(solution.circuit).data)
-        #solution.vector = np.real(np.diagonal(partial_trace(Statevector(solution.circuit), range(solution.x_reg, solution.qbits))))
-        #[0:solution.x_reg*solution.x_reg]
-    
-
-
+        solution.state = self.get_state_statevector(solution.circuit)
+        solution.solution = self.get_solution_vector(solution, matrix, vector)
         return solution
