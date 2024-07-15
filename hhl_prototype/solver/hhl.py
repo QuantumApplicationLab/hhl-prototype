@@ -20,25 +20,6 @@ from qiskit.circuit import QuantumCircuit, QuantumRegister, AncillaRegister
 from qiskit.circuit.library import PhaseEstimation, Isometry
 from qiskit.circuit.library.arithmetic.piecewise_chebyshev import PiecewiseChebyshev
 from qiskit.circuit.library.arithmetic.exact_reciprocal import ExactReciprocal
-<<<<<<< HEAD:hhl_prototype/hhl.py
-#from qiskit.opflow import (
-#    Z,
-#    I,
-#    StateFn,
-#    TensoredOp,
-#    ExpectationBase,
-#    CircuitSampler,
-#    ListOp,
-#    ExpectationFactory,
-#    ComposedOp,
-#)
-from qiskit.providers import Backend
-#from qiskit.utils import QuantumInstance
-
-from hhl_prototype.linear_solver import LinearSolver, LinearSolverResult
-from .matrices.numpy_matrix import NumPyMatrix
-from .observables.linear_system_observable import LinearSystemObservable
-=======
 
 from qiskit.providers import Backend
 from qiskit.circuit.library import Isometry
@@ -48,7 +29,6 @@ from qiskit.quantum_info import SparsePauliOp, Statevector, partial_trace
 from qiskit.primitives import BaseEstimator, BaseSampler
 
 from .hhl_result import HHLResult
->>>>>>> ca8c2a30a10b12412e3fb5b57d8067b2f41ef0ad:hhl_prototype/solver/hhl.py
 
 
 class HHL:
@@ -114,15 +94,8 @@ class HHL:
         estimator: BaseEstimator,
         sampler: Optional[Union[BaseSampler, None]] = None,
         epsilon: float = 1e-2,
-<<<<<<< HEAD:hhl_prototype/hhl.py
-        #expectation: Optional[ExpectationBase] = None,
-        expectation: Optional[str] = None,
-        #quantum_instance: Optional[Union[Backend, QuantumInstance]] = None,
-        quantum_instance: Optional[str] = None,
-=======
         options: Optional[Union[Dict, None]] = None,
->>>>>>> ca8c2a30a10b12412e3fb5b57d8067b2f41ef0ad:hhl_prototype/solver/hhl.py
-    ) -> None:
+        ) -> None:
         r"""
         Args:
             epsilon: Error tolerance of the approximation to the solution, i.e. if :math:`x` is the
@@ -189,18 +162,6 @@ class HHL:
                 "Please provide a sampler primitives when using Hadamard Overlap test"
             )
 
-<<<<<<< HEAD:hhl_prototype/hhl.py
-    #@property
-    #def expectation(self) -> ExpectationBase:
-    #    """The expectation value algorithm used to construct the expectation measurement from
-    #    the observable."""
-    #    return self._expectation
-
-    #@expectation.setter
-    #def expectation(self, expectation: ExpectationBase) -> None:
-    #    """Set the expectation value algorithm."""
-    #    self._expectation = expectation
-=======
         valid_matrix_decomposition = [
             "symmetric",
             "pauli",
@@ -213,7 +174,6 @@ class HHL:
             )
 
         return options
->>>>>>> ca8c2a30a10b12412e3fb5b57d8067b2f41ef0ad:hhl_prototype/solver/hhl.py
 
     def _get_delta(self, n_l: int, lambda_min: float, lambda_max: float) -> float:
         """Calculates the scaling factor to represent exactly lambda_min on nl binary digits.
