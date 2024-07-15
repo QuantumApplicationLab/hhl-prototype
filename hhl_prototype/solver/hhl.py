@@ -12,10 +12,8 @@
 
 """The HHL algorithm."""
 
-from typing import Optional, Union, List, Callable, Tuple
+from typing import Optional, Union, List
 import numpy as np
-from typing import Optional, Union, List, Callable, Dict, Tuple
-
 from qiskit.circuit import QuantumCircuit, QuantumRegister, AncillaRegister
 from qiskit.circuit.library import PhaseEstimation, Isometry
 from qiskit.circuit.library.arithmetic.piecewise_chebyshev import PiecewiseChebyshev
@@ -25,7 +23,7 @@ from qiskit.providers import Backend
 from qiskit.circuit.library import Isometry
 from ..matrices.numpy_matrix import NumPyMatrix
 
-from qiskit.quantum_info import SparsePauliOp, Statevector, partial_trace
+from qiskit.quantum_info import Statevector
 from qiskit.primitives import BaseEstimator, BaseSampler
 
 from .hhl_result import HHLResult
@@ -94,24 +92,15 @@ class HHL:
         estimator: BaseEstimator,
         sampler: Optional[Union[BaseSampler, None]] = None,
         epsilon: float = 1e-2,
-        options: Optional[Union[Dict, None]] = None,
         ) -> None:
         r"""
         Args:
+            estimator: Estimator used for running circuit. Default is BaseEstimator
+            sampler: Sampler used for running circuit, overrides estimator. Default is None. 
             epsilon: Error tolerance of the approximation to the solution, i.e. if :math:`x` is the
                 exact solution and :math:`\tilde{x}` the one calculated by the algorithm, then
                 :math:`||x - \tilde{x}|| \le epsilon`.
         """
-
-        self.default_solve_options = {
-            "use_overlap_test": False,
-            "use_local_cost_function": False,
-            "matrix_decomposition": "symmetric",
-            "shots": None,
-            "reuse_matrix": False,
-            "verbose": False,
-        }
-        self.options = self._validate_solve_options(options)
 
         super().__init__()
 
@@ -130,50 +119,6 @@ class HHL:
         self._exact_reciprocal = True
         # Set the default scaling to 1
         self.scaling = 1
-
-    def _validate_solve_options(self, options: Union[Dict, None]) -> Dict:
-        """validate the options used for the solve methods
-
-        Args:
-            options (Union[Dict, None]): options
-        """
-        valid_keys = self.default_solve_options.keys()
-
-        if options is None:
-            options = self.default_solve_options
-
-        else:
-            for k in options.keys():
-                if k not in valid_keys:
-                    raise ValueError(
-                        "Option {k} not recognized, valid keys are {valid_keys}"
-                    )
-            for k in valid_keys:
-                if k not in options.keys():
-                    options[k] = self.default_solve_options[k]
-
-        if options["use_overlap_test"] and options["use_local_cost_function"]:
-            raise ValueError(
-                "Local cost function cannot be used with Hadamard Overlap test"
-            )
-
-        if options["use_overlap_test"] and self.sampler is None:
-            raise ValueError(
-                "Please provide a sampler primitives when using Hadamard Overlap test"
-            )
-
-        valid_matrix_decomposition = [
-            "symmetric",
-            "pauli",
-            "contracted_pauli",
-            "optimized_pauli",
-        ]
-        if options["matrix_decomposition"] not in valid_matrix_decomposition:
-            raise ValueError(
-                f"matrix decomposition {k} invalid, valid keys: {valid_matrix_decomposition}"
-            )
-
-        return options
 
     def _get_delta(self, n_l: int, lambda_min: float, lambda_max: float) -> float:
         """Calculates the scaling factor to represent exactly lambda_min on nl binary digits.
@@ -227,17 +172,11 @@ class HHL:
                 vector = np.array(vector)
             nb = int(np.log2(len(vector)))
             vector_circuit = QuantumCircuit(nb)
-            # i made a change here
+            #prepare the vector b in the first quantum register
 
             isometry = Isometry(vector / np.linalg.norm(vector), 0, 0)
             vector_circuit.append(isometry, list(range(nb)))
 
-            """
-            vector_circuit.prepare_state(vector / np.linalg.norm(vector))
-            vector_circuit.isometry(
-                vector / np.linalg.norm(vector), list(range(nb)), None
-            )
-            """
         # If state preparation is probabilistic the number of qubit flags should increase
         nf = 1
 
@@ -418,7 +357,7 @@ class HHL:
 
     @staticmethod
     def get_state_qst(circuit: QuantumCircuit):
-        """Extract the statevector using quantum state tomotgraphy
+        """Extract the statevector using quantum state tomography
 
         Args:
             circuit (QuantumCircuit): the circuit
@@ -443,8 +382,7 @@ class HHL:
         solution = HHLResult
 
         solution.circuit = self.construct_circuit(matrix, vector)
-        solution.qbits = solution.circuit.num_qubits
-        solution.x_reg = solution.circuit.qregs[0].size
         solution.state = self.get_state_statevector(solution.circuit)
         solution.solution = self.get_solution_vector(solution, matrix, vector)
+
         return solution
