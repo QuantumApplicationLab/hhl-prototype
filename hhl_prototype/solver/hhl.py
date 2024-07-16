@@ -12,53 +12,24 @@
 
 """The HHL algorithm."""
 
-from typing import Optional, Union, List, Callable, Tuple
+from typing import Optional, Union, List
 import numpy as np
-
 from qiskit.circuit import QuantumCircuit, QuantumRegister, AncillaRegister
-from qiskit.circuit.library import PhaseEstimation
+from qiskit.circuit.library import PhaseEstimation, Isometry
 from qiskit.circuit.library.arithmetic.piecewise_chebyshev import PiecewiseChebyshev
 from qiskit.circuit.library.arithmetic.exact_reciprocal import ExactReciprocal
-from qiskit.opflow import (
-    Z,
-    I,
-    StateFn,
-    TensoredOp,
-    ExpectationBase,
-    CircuitSampler,
-    ListOp,
-    ExpectationFactory,
-    ComposedOp,
-)
-from qiskit.providers import Backend
-from qiskit.utils import QuantumInstance
 
-from .linear_solver import LinearSolver, LinearSolverResult
-from .matrices.numpy_matrix import NumPyMatrix
-from .observables.linear_system_observable import LinearSystemObservable
+from qiskit.circuit.library import Isometry
+from ..matrices.numpy_matrix import NumPyMatrix
+
+from qiskit.quantum_info import Statevector
+from qiskit.primitives import BaseEstimator, BaseSampler
+
+from .hhl_result import HHLResult
 
 
-class HHL(LinearSolver):
-    r"""Systems of linear equations arise naturally in many real-life applications in a wide range
-    of areas, such as in the solution of Partial Differential Equations, the calibration of
-    financial models, fluid simulation or numerical field calculation. The problem can be defined
-    as, given a matrix :math:`A\in\mathbb{C}^{N\times N}` and a vector
-    :math:`\vec{b}\in\mathbb{C}^{N}`, find :math:`\vec{x}\in\mathbb{C}^{N}` satisfying
-    :math:`A\vec{x}=\vec{b}`.
-
-    A system of linear equations is called :math:`s`-sparse if :math:`A` has at most :math:`s`
-    non-zero entries per row or column. Solving an :math:`s`-sparse system of size :math:`N` with
-    a classical computer requires :math:`\mathcal{ O }(Ns\kappa\log(1/\epsilon))` running time
-    using the conjugate gradient method. Here :math:`\kappa` denotes the condition number of the
-    system and :math:`\epsilon` the accuracy of the approximation.
-
-    The HHL is a quantum algorithm to estimate a function of the solution with running time
-    complexity of :math:`\mathcal{ O }(\log(N)s^{2}\kappa^{2}/\epsilon)` when
-    :math:`A` is a Hermitian matrix under the assumptions of efficient oracles for loading the
-    data, Hamiltonian simulation and computing a function of the solution. This is an exponential
-    speed up in the size of the system, however one crucial remark to keep in mind is that the
-    classical algorithm returns the full solution, while the HHL can only approximate functions of
-    the solution vector.
+class HHL:
+    """
 
     Examples:
 
@@ -98,20 +69,19 @@ class HHL(LinearSolver):
 
     def __init__(
         self,
+        estimator: BaseEstimator,
+        sampler: Optional[Union[BaseSampler, None]] = None,
         epsilon: float = 1e-2,
-        expectation: Optional[ExpectationBase] = None,
-        quantum_instance: Optional[Union[Backend, QuantumInstance]] = None,
-    ) -> None:
+        ) -> None:
         r"""
         Args:
+            estimator: Estimator used for running circuit. Default is BaseEstimator
+            sampler: Sampler used for running circuit, overrides estimator. Default is None. 
             epsilon: Error tolerance of the approximation to the solution, i.e. if :math:`x` is the
                 exact solution and :math:`\tilde{x}` the one calculated by the algorithm, then
                 :math:`||x - \tilde{x}|| \le epsilon`.
-            expectation: The expectation converter applied to the expectation values before
-                evaluation. If None then PauliExpectation is used.
-            quantum_instance: Quantum Instance or Backend. If None, a Statevector calculation is
-                done.
         """
+
         super().__init__()
 
         self._epsilon = epsilon
@@ -122,60 +92,13 @@ class HHL(LinearSolver):
 
         self._scaling = None  # scaling of the solution
 
-        self._sampler = None
-        self.quantum_instance = quantum_instance
-
-        self._expectation = expectation
+        self.estimator = estimator
+        self.sampler = sampler
 
         # For now the default reciprocal implementation is exact
         self._exact_reciprocal = True
         # Set the default scaling to 1
         self.scaling = 1
-
-    @property
-    def quantum_instance(self) -> Optional[QuantumInstance]:
-        """Get the quantum instance.
-
-        Returns:
-            The quantum instance used to run this algorithm.
-        """
-        return None if self._sampler is None else self._sampler.quantum_instance
-
-    @quantum_instance.setter
-    def quantum_instance(
-        self, quantum_instance: Optional[Union[QuantumInstance, Backend]]
-    ) -> None:
-        """Set quantum instance.
-
-        Args:
-            quantum_instance: The quantum instance used to run this algorithm.
-                If None, a Statevector calculation is done.
-        """
-        if quantum_instance is not None:
-            self._sampler = CircuitSampler(quantum_instance)
-        else:
-            self._sampler = None
-
-    @property
-    def scaling(self) -> float:
-        """The scaling of the solution vector."""
-        return self._scaling
-
-    @scaling.setter
-    def scaling(self, scaling: float) -> None:
-        """Set the new scaling of the solution vector."""
-        self._scaling = scaling
-
-    @property
-    def expectation(self) -> ExpectationBase:
-        """The expectation value algorithm used to construct the expectation measurement from
-        the observable."""
-        return self._expectation
-
-    @expectation.setter
-    def expectation(self, expectation: ExpectationBase) -> None:
-        """Set the expectation value algorithm."""
-        self._expectation = expectation
 
     def _get_delta(self, n_l: int, lambda_min: float, lambda_max: float) -> float:
         """Calculates the scaling factor to represent exactly lambda_min on nl binary digits.
@@ -198,117 +121,6 @@ class HHL(LinearSolver):
         for i, char in enumerate(binstr):
             lamb_min_rep += int(char) / (2 ** (i + 1))
         return lamb_min_rep
-
-    def _calculate_norm(self, qc: QuantumCircuit) -> float:
-        """Calculates the value of the euclidean norm of the solution.
-
-        Args:
-            qc: The quantum circuit preparing the solution x to the system.
-
-        Returns:
-            The value of the euclidean norm of the solution.
-        """
-        # Calculate the number of qubits
-        nb = qc.qregs[0].size
-        nl = qc.qregs[1].size
-        na = qc.num_ancillas
-
-        # Create the Operators Zero and One
-        zero_op = (I + Z) / 2
-        one_op = (I - Z) / 2
-
-        # Norm observable
-        observable = one_op ^ TensoredOp((nl + na) * [zero_op]) ^ (I ^ nb)
-        norm_2 = (~StateFn(observable) @ StateFn(qc)).eval()
-
-        return np.real(np.sqrt(norm_2) / self.scaling)
-
-    def _calculate_observable(
-        self,
-        solution: QuantumCircuit,
-        ls_observable: Optional[LinearSystemObservable] = None,
-        observable_circuit: Optional[QuantumCircuit] = None,
-        post_processing: Optional[
-            Callable[[Union[float, List[float]], int, float], float]
-        ] = None,
-    ) -> Tuple[float, Union[complex, List[complex]]]:
-        """Calculates the value of the observable(s) given.
-
-        Args:
-            solution: The quantum circuit preparing the solution x to the system.
-            ls_observable: Information to be extracted from the solution.
-            observable_circuit: Circuit to be applied to the solution to extract information.
-            post_processing: Function to compute the value of the observable.
-
-        Returns:
-            The value of the observable(s) and the circuit results before post-processing as a
-             tuple.
-        """
-        # Get the number of qubits
-        nb = solution.qregs[0].size
-        nl = solution.qregs[1].size
-        na = solution.num_ancillas
-
-        # if the observable is given construct post_processing and observable_circuit
-        if ls_observable is not None:
-            observable_circuit = ls_observable.observable_circuit(nb)
-            post_processing = ls_observable.post_processing
-
-            if isinstance(ls_observable, LinearSystemObservable):
-                observable = ls_observable.observable(nb)
-
-        # in the other case use the identity as observable
-        else:
-            observable = I ^ nb
-
-        # Create the Operators Zero and One
-        zero_op = (I + Z) / 2
-        one_op = (I - Z) / 2
-
-        is_list = True
-        if not isinstance(observable_circuit, list):
-            is_list = False
-            observable_circuit = [observable_circuit]
-            observable = [observable]
-
-        expectations: Union[ListOp, ComposedOp] = []
-        for circ, obs in zip(observable_circuit, observable):
-            circuit = QuantumCircuit(solution.num_qubits)
-            circuit.append(solution, circuit.qubits)
-            circuit.append(circ, range(nb))
-
-            ob = one_op ^ TensoredOp((nl + na) * [zero_op]) ^ obs
-            expectations.append(~StateFn(ob) @ StateFn(circuit))
-
-        if is_list:
-            # execute all in a list op to send circuits in batches
-            expectations = ListOp(expectations)
-        else:
-            expectations = expectations[0]
-
-        # check if an expectation converter is given
-        if self._expectation is not None:
-            expectations = self._expectation.convert(expectations)
-        # if otherwise a backend was specified, try to set the best expectation value
-        elif self._sampler is not None:
-            if is_list:
-                op = expectations.oplist[0]
-            else:
-                op = expectations
-            self._expectation = ExpectationFactory.build(
-                op, self._sampler.quantum_instance
-            )
-
-        if self._sampler is not None:
-            expectations = self._sampler.convert(expectations)
-
-        # evaluate
-        expectation_results = expectations.eval()
-
-        # apply post_processing
-        result = post_processing(expectation_results, nb, self.scaling)
-
-        return result, expectation_results
 
     def construct_circuit(
         self,
@@ -340,10 +152,10 @@ class HHL(LinearSolver):
                 vector = np.array(vector)
             nb = int(np.log2(len(vector)))
             vector_circuit = QuantumCircuit(nb)
-            # pylint: disable=no-member
-            vector_circuit.isometry(
-                vector / np.linalg.norm(vector), list(range(nb)), None
-            )
+            #prepare the vector b in the first quantum register
+
+            isometry = Isometry(vector / np.linalg.norm(vector), 0, 0)
+            vector_circuit.append(isometry, list(range(nb)))
 
         # If state preparation is probabilistic the number of qubit flags should increase
         nf = 1
@@ -493,67 +305,64 @@ class HHL(LinearSolver):
             qc.append(phase_estimation.inverse(), ql[:] + qb[:])
         return qc
 
-    def solve(
-        self,
-        matrix: Union[List, np.ndarray, QuantumCircuit],
-        vector: Union[List, np.ndarray, QuantumCircuit],
-        observable: Optional[
-            Union[
-                LinearSystemObservable,
-                List[LinearSystemObservable],
-            ]
-        ] = None,
-        observable_circuit: Optional[
-            Union[QuantumCircuit, List[QuantumCircuit]]
-        ] = None,
-        post_processing: Optional[
-            Callable[[Union[float, List[float]], int, float], float]
-        ] = None,
-    ) -> LinearSolverResult:
-        """Tries to solve the given linear system of equations.
+    @staticmethod
+    def get_solution_vector(solution, A, b) -> np.ndarray:
+        """Extracts and normalizes simulated state vector
+        from LinearSolverResult.
 
         Args:
-            matrix: The matrix specifying the system, i.e. A in Ax=b.
-            vector: The vector specifying the right hand side of the equation in Ax=b.
-            observable: Optional information to be extracted from the solution.
-                Default is the probability of success of the algorithm.
-            observable_circuit: Optional circuit to be applied to the solution to extract
-                information. Default is `None`.
-            post_processing: Optional function to compute the value of the observable.
-                Default is the raw value of measuring the observable.
-
-        Raises:
-            ValueError: If an invalid combination of observable, observable_circuit and
-                post_processing is passed.
+            solution (): HHL result instance
+            A (np.ndarray): LS matrix
+            b (np.ndarray): LS rhs
 
         Returns:
-            The result object containing information about the solution vector of the linear
-            system.
+            np.ndarray: solution of the LS
         """
-        # verify input
-        if observable is not None:
-            if observable_circuit is not None or post_processing is not None:
-                raise ValueError(
-                    "If observable is passed, observable_circuit and post_processing cannot be set."
-                )
+        nqubits = int(np.log2(len(solution.state)))
+        start_idx = 2 ** (nqubits - 1)
+        end_idx = start_idx + 2 ** int(np.log2(len(b)))
+        solution_vector = Statevector(solution.state).data[start_idx:end_idx].real
+        tmp_vec = A @ solution_vector
+        norm = np.linalg.norm(tmp_vec) / np.linalg.norm(b)
+        return solution_vector / norm
 
-        solution = LinearSolverResult()
-        solution.state = self.construct_circuit(matrix, vector)
-        solution.euclidean_norm = self._calculate_norm(solution.state)
+    @staticmethod
+    def get_state_statevector(circuit: QuantumCircuit):
+        """Extract the statevector of a circuit using statevector simulators
 
-        if isinstance(observable, List):
-            observable_all, circuit_results_all = [], []
-            for obs in observable:
-                obs_i, circ_results_i = self._calculate_observable(
-                    solution.state, obs, observable_circuit, post_processing
-                )
-                observable_all.append(obs_i)
-                circuit_results_all.append(circ_results_i)
-            solution.observable = observable_all
-            solution.circuit_results = circuit_results_all
-        elif observable is not None or observable_circuit is not None:
-            solution.observable, solution.circuit_results = self._calculate_observable(
-                solution.state, observable, observable_circuit, post_processing
-            )
+        Args:
+            circuit (QuantumCircuit): the circuit
+        """
+        return np.real(Statevector(circuit).data)
+
+    @staticmethod
+    def get_state_qst(circuit: QuantumCircuit):
+        """Extract the statevector using quantum state tomography
+
+        Args:
+            circuit (QuantumCircuit): the circuit
+        """
+        raise NotImplementedError("get_state_qst not implemented yet")
+
+    def solve(
+        self,
+        matrix: Union[np.ndarray, QuantumCircuit, List[QuantumCircuit]],
+        vector: Union[np.ndarray, QuantumCircuit],
+    ) -> HHLResult:
+        """Solve the linear system
+
+        Args:
+            matrix (Union[List, np.ndarray, QuantumCircuit]): matrix of the linear system
+            vector (Union[np.ndarray, QuantumCircuit]): rhs of the linear system
+
+        Returns:
+            HHLResult: Dataclass with solution vector of the linear system
+        """
+
+        solution = HHLResult
+
+        solution.circuit = self.construct_circuit(matrix, vector)
+        solution.state = self.get_state_statevector(solution.circuit)
+        solution.solution = self.get_solution_vector(solution, matrix, vector)
 
         return solution

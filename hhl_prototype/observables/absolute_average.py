@@ -16,7 +16,9 @@ from typing import Union, List
 import numpy as np
 
 from qiskit import QuantumCircuit
-from qiskit.opflow import I, Z, TensoredOp
+#from qiskit.opflow import I, Z, TensoredOp
+from qiskit.quantum_info import SparsePauliOp as TensoredOp
+
 from qiskit.quantum_info import Statevector
 
 from .linear_system_observable import LinearSystemObservable
