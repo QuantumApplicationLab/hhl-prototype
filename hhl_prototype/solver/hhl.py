@@ -145,6 +145,31 @@ class HHL:
         """
         # State preparation circuit - default is qiskit
         if isinstance(vector, QuantumCircuit):
+            nqbit = vector.num_qubits
+            vector_circuit = vector
+
+        elif isinstance(vector, np.ndarray):
+            # ensure the vector is double
+            vector = vector.astype("float64")
+
+            if vector.ndim == 2:
+                vector = vector.flatten()
+
+            # create the circuit
+            nqbit = np.ceil(np.log2(len(vector)))
+            vector_circuit = QuantumCircuit(nqbit, name="Ub")
+
+            # prep the vector if its norm is non nul
+            vec_norm = np.linalg.norm(vector)
+            if vec_norm != 0:
+                vector_circuit.prepare_state(vector / vec_norm)
+            else:
+                raise ValueError("Norm of b vector is null!")
+        else:
+            raise ValueError("Format of the input vector not recognized")
+
+'''
+        if isinstance(vector, QuantumCircuit):
             nb = vector.num_qubits
             vector_circuit = vector
         elif isinstance(vector, (list, np.ndarray)):
@@ -154,8 +179,11 @@ class HHL:
             vector_circuit = QuantumCircuit(nb)
             #prepare the vector b in the first quantum register
 
-            isometry = Isometry(vector / np.linalg.norm(vector), 0, 0)
-            vector_circuit.append(isometry, list(range(nb)))
+            #isometry = Isometry(vector / np.linalg.norm(vector), 0, 0)
+            #vector_circuit.append(isometry, list(range(nb)))
+            
+            vector_circuit.prepare_state(vector / np.linalg.norm(vector) )
+'''
 
         # If state preparation is probabilistic the number of qubit flags should increase
         nf = 1
