@@ -18,7 +18,8 @@ from scipy.sparse import diags
 
 from qiskit import QuantumCircuit
 from qiskit.quantum_info import Statevector
-#from qiskit.opflow import I, Z, TensoredOp
+
+# from qiskit.opflow import I, Z, TensoredOp
 from qiskit.quantum_info import SparsePauliOp as TensoredOp
 
 from .linear_system_observable import LinearSystemObservable

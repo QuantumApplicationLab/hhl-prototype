@@ -24,10 +24,9 @@ size = 4
 @pytest.mark.parametrize("b", [np.random.rand(size)])
 @pytest.mark.parametrize("estimator", [Estimator()])
 @pytest.mark.parametrize("sampler", [Sampler()])
-
 def test_hhl_solve_default(A, b, estimator, sampler):
     """Test the hhl solver."""
-    hhl = HHL(estimator, sampler = sampler)
-    results = hhl.solve(A,b).solution
+    hhl = HHL(estimator, sampler=sampler)
+    results = hhl.solve(A, b).solution
     if np.linalg.norm(A.dot(results) - b) > 0.1:
         pytest.skip("HHL solution innacurate")

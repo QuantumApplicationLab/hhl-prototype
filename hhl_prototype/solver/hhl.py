@@ -72,11 +72,11 @@ class HHL:
         estimator: BaseEstimator,
         sampler: Optional[Union[BaseSampler, None]] = None,
         epsilon: float = 1e-2,
-        ) -> None:
+    ) -> None:
         r"""
         Args:
             estimator: Estimator used for running circuit. Default is BaseEstimator
-            sampler: Sampler used for running circuit, overrides estimator. Default is None. 
+            sampler: Sampler used for running circuit, overrides estimator. Default is None.
             epsilon: Error tolerance of the approximation to the solution, i.e. if :math:`x` is the
                 exact solution and :math:`\tilde{x}` the one calculated by the algorithm, then
                 :math:`||x - \tilde{x}|| \le epsilon`.
@@ -152,7 +152,7 @@ class HHL:
                 vector = np.array(vector)
             nb = int(np.log2(len(vector)))
             vector_circuit = QuantumCircuit(nb)
-            #prepare the vector b in the first quantum register
+            # prepare the vector b in the first quantum register
 
             isometry = Isometry(vector / np.linalg.norm(vector), 0, 0)
             vector_circuit.append(isometry, list(range(nb)))
