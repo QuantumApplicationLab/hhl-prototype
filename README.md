@@ -6,6 +6,7 @@
 [![Tests](https://github.com/quantumapplicationlab/hhl-prototype/actions/workflows/coverage.yml/badge.svg)](https://github.com/quantumapplicationlab/hhl-prototype/actions/workflows/coverage.yml)
 [![Coverage Status](https://coveralls.io/repos/github/QuantumApplicationLab/hhl-prototype/badge.svg?branch=main)](https://coveralls.io/github/QuantumApplicationLab/hhl-prototype?branch=main)
 
+![hhl](./docs/hhl.png)
 
 # HHL Quantum Linear Solver
 The `hhl-prototype` allows to use the HHL algorithm to solve linear system of euqations. 
