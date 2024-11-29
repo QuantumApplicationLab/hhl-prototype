@@ -1,13 +1,11 @@
 import numpy as np
 import pytest
 from qiskit.primitives import Estimator
-from scipy.sparse import random as sprand
-from scipy.sparse import sparray
 from hhl_prototype.solver.hhl import HHL
-from qiskit.primitives import Estimator, Sampler
+from qiskit.primitives import Sampler
 
 
-def create_random_matrix(size: int) -> sparray:
+def create_random_matrix(size: int) -> np.ndarray:
     """Create a random symmetric matrix.
 
     Args:
