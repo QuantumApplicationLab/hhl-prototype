@@ -1,4 +1,0 @@
-importlib_metadata
-mthree
-pylatexenc
-qiskit
