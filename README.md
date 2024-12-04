@@ -1,7 +1,7 @@
 ![Platform](https://img.shields.io/badge/platform-Linux-blue)
 [![Python](https://img.shields.io/badge/Python-3.8-informational)](https://www.python.org/)
 [![Qiskit](https://img.shields.io/badge/Qiskit-%E2%89%A5%200.44.2-6133BD)](https://github.com/Qiskit/qiskit)
-[![License](https://img.shields.io/github/license/quantumapplicationlab/hhl-prototype?label=License)](https://github.com/quantumapplicationlab/hhl-prototype/blob/main/LICENSE.txt)
+[![License](https://img.shields.io/github/license/quantumapplicationlab/hhl-prototype?label=License)](https://github.com/quantumapplicationlab/hhl-prototype/blob/main/LICENSE)
 [![Code style: Black](https://img.shields.io/badge/Code%20style-Black-000.svg)](https://github.com/psf/black)
 [![Tests](https://github.com/quantumapplicationlab/hhl-prototype/actions/workflows/coverage.yml/badge.svg)](https://github.com/quantumapplicationlab/hhl-prototype/actions/workflows/coverage.yml)
 [![Coverage Status](https://coveralls.io/repos/github/QuantumApplicationLab/hhl-prototype/badge.svg?branch=main)](https://coveralls.io/github/QuantumApplicationLab/hhl-prototype?branch=main)
